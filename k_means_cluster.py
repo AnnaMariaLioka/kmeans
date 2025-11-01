@@ -15,17 +15,11 @@ Methodology for the K Means algorithm:
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Union
 
-'''
-matplotlib: zum Plotten der Cluster
-numpy: Mathe & Arrays
-cityblock: Manhattan-Distanz‐Funktion
-SAMPLE_DATA: Beispiel-Dataset aus Repo
-'''
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.pyplot as plt                                                         #matplotlib: zum Plotten der Cluster
+import numpy as np                                                                      #numpy: Mathe & Arrays
 from pandas import DataFrame
-from scipy.spatial.distance import cityblock
-from make_clusters import SAMPLE_DATA
+from scipy.spatial.distance import cityblock                                            #cityblock: Manhattan-Distanz‐Funktion --->Im Code wird Manhattan-Distanz (cityblock) genutzt, wenn du method='manhattan' setzt (wenn Daten orthogonal sind, z.B. Raster, pixel)----statt Euclidisch (bei runde Cluster)
+from make_clusters import SAMPLE_DATA                                                   #SAMPLE_DATA: Beispiel-Dataset aus Repo
 
 #Alias für Datentypen, die als Input erlaubt sind:
 ClusterData = Union[List, np.array, np.ndarray, DataFrame]
@@ -33,7 +27,7 @@ ClusterData = Union[List, np.array, np.ndarray, DataFrame]
 #Klasse, die k-means implementiert:
 class KMeansCluster:
     """Simple K-Means Clustering Model"""
-    
+    #Konstruktor: Speichert Einstellungen: wie viele Cluster, wann aufhören, welche Distanzformel.
     def __init__(self, k: int = 2, tol: float = 0.001, max_iter: int = 300,
                  method: str = 'euclidean'):
         #Sicherstellen, dass Methode gültig ist:
@@ -50,6 +44,7 @@ class KMeansCluster:
         self.cluster_distances: Dict[int, Any] = {}                                     #cluster_distances: wird später für Cluster-Qualität genutzt
 
     #Zufällige Start-Zentren
+    #Wähle zufällig K Startpunkte → die ersten Cluster-Zentren.
     def initialize_centroids(self, data: ClusterData) -> "KMeansCluster":
         """Get initial centroids"""
         choices = np.random.choice([*range(len(data))], size=self.k, replace=False)     #np.random.choice → wählt zufällig k Indexe
@@ -57,7 +52,8 @@ class KMeansCluster:
             self.centroids[i] = data[choices[i]]
         return self
 
-    @staticmethod
+    #Egal welche Datenart eingegeben wird → intern wird’s zu NumPy Array.
+    @staticmethod                                                                       #@staticmethod: Diese Funktion braucht kein Objekt und keine Klassenvariablen.
     def _convert_to_array(data: ClusterData) -> np.array:
         """Function to convert data into ndarray"""                                     #Konvertiert Input in NumPy-Array, egal ob Liste/DF
         if isinstance(data, np.ndarray):
@@ -69,6 +65,7 @@ class KMeansCluster:
         raise TypeError
 
     #Distanzberechnung:
+    #Berechne Entfernung zwischen Punkt und Zentrum (manhattan oder euklidisch)
     def get_distance(self, arr_1: ClusterData, arr_2: ClusterData) -> float:
         """Calculate squared distance between two points"""
         arr_1 = self._convert_to_array(arr_1)
@@ -86,6 +83,7 @@ class KMeansCluster:
         return distances.index(min(distances))                                          #Gibt Index des nächstgelegenen Zentroids zurück
 
     #Zuweisung: Welcher Punkt in welchen Cluster?
+    #Für jeden Punkt: Finde das nächste Zentrum → steck ihn in diese Gruppe.
     def assign_cluster(self, data: ClusterData) -> "KMeansCluster":
         """Function to assign a point to a centroid"""
         #Reset aller Cluster:
@@ -102,6 +100,7 @@ class KMeansCluster:
         return self
 
     #Centroid Update
+    #Mittelwert der Punkte im Cluster = neues Zentrum
     def update_centroid(self) -> "KMeansCluster":
         """Function to update centroids"""
         for cluster in self.clusters:
@@ -110,11 +109,13 @@ class KMeansCluster:
         return self
 
     #Prüfen, ob Centroid-Bewegung klein genug:
+    #Haben sich die Zentren fast nicht mehr bewegt? → Stop.
     def meets_tolerance(self, old_centroids: ClusterData, new_centroids: ClusterData) -> bool:
         """Function to detect convergence"""
         return np.abs(self.get_distance(old_centroids, new_centroids)) <= self.tol
 
     #Trainingsloop:
+    #Die große Schleife: starte Zentren, Punkte zuordnen, Zentren nachrücken, repeat, Stop wenn stabil. fertig.
     def fit(self, data: ClusterData, verbose=0):
         """
         Function to fit K-Means object to dataset.
